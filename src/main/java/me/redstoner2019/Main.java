@@ -50,7 +50,7 @@ public class Main extends ListenerAdapter {
             e.printStackTrace();
         }
 
-        String token = "MTE0Mzk5MDEzNjI4NDEzOTUyMA.GenPOk.FFLOEPRLxcDMyBdVsJyriBeYhdW-QYytbK3p4E";
+        String token = "token";
 
         stundenOffsets.put("07:30",0);
         stundenOffsets.put("08:15",1);
@@ -119,14 +119,6 @@ public class Main extends ListenerAdapter {
         reactionReady = true;
 
         chatChannel.getGuild().updateCommands().addCommands(Commands.slash("setup", "Setup UntisBot")).queue();
-
-        /*
-          ApplicationID: 1143990136284139520
-          publicKey: 48c92e9595a94746b133c829f441aef35a2c6669ef804f1a03722c1c18d76b0f
-          clientID: 1143990136284139520
-           token: MTE0Mzk5MDEzNjI4NDEzOTUyMA.GenPOk.FFLOEPRLxcDMyBdVsJyriBeYhdW-QYytbK3p4E
-         */
-
     }
 
     @Override
