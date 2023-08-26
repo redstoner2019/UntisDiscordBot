@@ -52,6 +52,8 @@ public class Main extends ListenerAdapter {
 
         String token = "token";
 
+        token = args[0];
+
         stundenOffsets.put("07:30",0);
         stundenOffsets.put("08:15",1);
         stundenOffsets.put("09:15",2);
