@@ -66,7 +66,7 @@ public class Main extends ListenerAdapter {
         jda.awaitReady();
         jda.addEventListener(new Main());
 
-        chatChannel = jda.getTextChannels().get(0);
+        chatChannel = jda.getTextChannelById("1143512064690765904");
 
         if(Objects.equals(pingRoleID, "")){
             for(Role role : chatChannel.getGuild().getRoles()){
@@ -87,14 +87,14 @@ public class Main extends ListenerAdapter {
                 msg.delete().queue();
             }
         }
-        sendMessage("React for Ping role");
-        messageID = sendMessage("Timetable Message");
         Thread t = new Thread(() -> {
             while (true) {
                 try {
                     try{
-                        refreshHours();
-                        refreshEmbeds(messageID);
+                        if(chatChannel != null){
+                            refreshHours();
+                            refreshEmbeds(messageID);
+                        }
                         List<Integer> times = List.of(6,7);
                         if(times.contains(LocalTime.now(Clock.systemDefaultZone()).getHour())){
                             if(LocalTime.now(Clock.systemDefaultZone()).getMinute() == 0){
