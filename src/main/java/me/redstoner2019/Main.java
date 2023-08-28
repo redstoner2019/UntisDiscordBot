@@ -230,8 +230,7 @@ public class Main extends ListenerAdapter {
             session.useCache(false);
             Timetable timetable;
             boolean refreshLetzeStunde;
-            //if(localTimeToLong(letzteStunde)<=localTimeToLong(LocalTime.now())){
-            if(localTimeToLong(LocalTime.of(17,19))<=localTimeToLong(getTime())){
+            if(localTimeToLong(letzteStunde)<=localTimeToLong(getTime())){
                 timetable = session.getTimetableFromClassId(getDate().plusDays(1), getDate().plusDays(1), id);
                 refreshLetzeStunde = false;
                 refreshTime = getDate().plusDays(1);
@@ -368,20 +367,16 @@ public class Main extends ListenerAdapter {
                 role = chatChannel.getGuild().createRole().setColor(Color.RED).setName("Entfall Ping").setPermissions(0L).complete();
                 if(Objects.requireNonNull(event.getMember()).getRoles().contains(role)){
                     event.getGuild().removeRoleFromMember(event.getUser(),role).queue();
-                    System.out.println("Removing");
                 } else {
                     event.getGuild().addRoleToMember(event.getUser(),role).queue();
-                    System.out.println("Adding");
                 }
             } else {
                 role = chatChannel.getGuild().getRoleById(pingRoleID);
                 if(role != null){
                     if(Objects.requireNonNull(event.getMember()).getRoles().contains(role)){
                         event.getGuild().removeRoleFromMember(event.getUser(),role).queue();
-                        System.out.println("Removing");
                     } else {
                         event.getGuild().addRoleToMember(event.getUser(),role).queue();
-                        System.out.println("Adding");
                     }
                 }
             }
