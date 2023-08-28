@@ -204,7 +204,7 @@ public class Main extends ListenerAdapter {
             embeds.add(eb.build());
         }
         try{
-            chatChannel.editMessageById(id,"# Aktueller Stundenplan\nAktualisiert: " + "<t:" + (System.currentTimeMillis()/1000) + ":R>\nDatum: " + refreshTime).setEmbeds(embeds).queue();
+            chatChannel.editMessageById(id,"# Aktueller Stundenplan\nAktualisiert: " + "<t:" + (System.currentTimeMillis()/1000) + ":R>\nDatum: " + refreshTime.getDayOfWeek() + " " + refreshTime.getDayOfMonth() + "." + refreshTime.getMonth().getValue() + "." + refreshTime.getYear()).setEmbeds(embeds).queue();
         }catch (Exception ignored){}
     }
 
