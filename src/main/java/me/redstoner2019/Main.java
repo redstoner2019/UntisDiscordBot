@@ -150,22 +150,24 @@ public class Main extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         if(event.getName().equals("setup")){
+            System.out.println(event.getOptions().size());
             if(event.getOptions().size() == 1){
                 hourOffset = event.getOptions().get(0).getAsInt();
                 System.out.println(hourOffset);
-            }
-            System.out.println(event.getOptions().get(0));
-            chatChannel = event.getChannel().asTextChannel();
-            List<Message> messages = chatChannel.getHistory().retrievePast(50).complete();
-            for(Message msg : messages){
-                if(msg.getAuthor().getEffectiveName().equals("UntisBot")){
-                    msg.delete().queue();
+                event.reply("Changed time offset to " + hourOffset).setEphemeral(true).queue();
+            } else {
+                chatChannel = event.getChannel().asTextChannel();
+                List<Message> messages = chatChannel.getHistory().retrievePast(50).complete();
+                for(Message msg : messages){
+                    if(msg.getAuthor().getEffectiveName().equals("UntisBot")){
+                        msg.delete().queue();
+                    }
                 }
+                sendMessage("React for Ping role");
+                messageID = sendMessage("Timetable Message");
+                refreshEmbeds(messageID);
+                event.reply("Setup done").setEphemeral(true).queue();
             }
-            sendMessage("React for Ping role");
-            messageID = sendMessage("Timetable Message");
-            refreshEmbeds(messageID);
-            event.reply("Setup done").setEphemeral(true).queue();
         }
     }
 
