@@ -11,7 +11,9 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.AttachedFile;
 import net.dv8tion.jda.api.utils.FileUpload;
@@ -50,12 +52,13 @@ public class Main extends ListenerAdapter {
     public static boolean stundenEntfallen = false;
     public static LocalTime letzteStunde;
     public static LocalDate refreshTime;
+    public static int hourOffset = 2;
 
     public static LocalDate getDate(){
-        return LocalDate.now(ZoneOffset.systemDefault());
+        return LocalDate.now(ZoneOffset.ofHours(hourOffset));
     }
     public static LocalTime getTime(){
-        return LocalTime.now(ZoneOffset.systemDefault());
+        return LocalTime.now(ZoneOffset.ofHours(hourOffset));
     }
 
     public static void main(String[] args) throws InterruptedException {
@@ -139,12 +142,19 @@ public class Main extends ListenerAdapter {
 
         reactionReady = true;
 
-        chatChannel.getGuild().updateCommands().addCommands(Commands.slash("setup", "Setup UntisBot")).queue();
+        chatChannel.getGuild().updateCommands().addCommands(Commands.slash("setup", "Setup UntisBot").addOptions(
+                new OptionData(OptionType.STRING, "setoffset", "The type of animal to find")
+        )).queue();
     }
 
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         if(event.getName().equals("setup")){
+            if(event.getOptions().size() == 1){
+                hourOffset = event.getOptions().get(0).getAsInt();
+                System.out.println(hourOffset);
+            }
+            System.out.println(event.getOptions().get(0));
             chatChannel = event.getChannel().asTextChannel();
             List<Message> messages = chatChannel.getHistory().retrievePast(50).complete();
             for(Message msg : messages){
@@ -201,12 +211,6 @@ public class Main extends ListenerAdapter {
                         eb.addField(s.getStunde() + ". Stunde " + s.getName() + " (" + s.getInfo() + ")", s.getTimes() + " in Raum: " + s.getRoom(), true);
                     }
                     embeds.add(eb.build());
-                    /*if(i == 4){
-                        eb.clearFields();
-                        eb.setColor(Color.DARK_GRAY);
-                        eb.addField("Pause","Pause",true);
-                        embeds.add(eb.build());
-                    }*/
                 }
             }
         } else {
