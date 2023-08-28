@@ -190,9 +190,9 @@ public class Main extends ListenerAdapter {
                     Stunde s = stundeHashMap.get(i+1);
                     eb.setColor(s.getColor());
                     if(s.getInfo().equals("REGULAR")){
-                        eb.addField(s.getStunde() + ". Stunde " + s.getName(), s.getTimes() + "\nRaum: " + s.getRoom(), true);
+                        eb.addField(s.getStunde() + ". Stunde " + s.getName(), s.getTimes() + " in Raum: " + s.getRoom(), true);
                     } else {
-                        eb.addField(s.getStunde() + ". Stunde " + s.getName() + " (" + s.getInfo() + ")", s.getTimes() + "\nRaum: " + s.getRoom(), true);
+                        eb.addField(s.getStunde() + ". Stunde " + s.getName() + " (" + s.getInfo() + ")", s.getTimes() + " in Raum: " + s.getRoom(), true);
                     }
                     embeds.add(eb.build());
                 }
