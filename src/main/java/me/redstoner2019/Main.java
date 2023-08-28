@@ -196,6 +196,12 @@ public class Main extends ListenerAdapter {
                         eb.addField(s.getStunde() + ". Stunde " + s.getName() + " (" + s.getInfo() + ")", s.getTimes() + " in Raum: " + s.getRoom(), true);
                     }
                     embeds.add(eb.build());
+                    if(i == 2 || i == 4 || i == 6 || i == 8){
+                        eb.clearFields();
+                        eb.setColor(Color.DARK_GRAY);
+                        eb.addField("Pause","",true);
+                        embeds.add(eb.build());
+                    }
                 }
             }
         } else {
