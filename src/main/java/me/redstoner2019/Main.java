@@ -308,7 +308,6 @@ public class Main extends ListenerAdapter {
                     long start = localTimeToLong(timetable.getStartTimes().get(i));
                     long end = localTimeToLong(timetable.getEndTimes().get(i));
                     long now = localTimeToLong(getTime());
-                    now = localTimeToLong(LocalTime.of(11,16));
                     if(s.getInfo().equals("IRREGULAR")){
                         s.setColor(Color.ORANGE);
                         stundenEntfallen = true;
