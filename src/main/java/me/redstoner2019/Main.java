@@ -48,12 +48,15 @@ public class Main extends ListenerAdapter {
     public static String pingRoleID = "";
     public static List<Message> messagesPings = new ArrayList<>();
     public static boolean stundenEntfallen = false;
+    public static LocalTime letzteStunde;
+    public static LocalDate refreshTime;
 
     public static LocalDate getDate(){
         return LocalDate.now(ZoneOffset.systemDefault());
     }
 
     public static void main(String[] args) throws InterruptedException {
+        letzteStunde = LocalTime.of(2,0);
         try {
             session = Session.login(className,password, "https://mese.webuntis.com", schoolName);
         } catch (IOException e) {
@@ -105,7 +108,7 @@ public class Main extends ListenerAdapter {
                             refreshEmbeds(messageID);
                             //generateImage(messageID);
                         }
-                        List<String> times = List.of("6:00","7:00");
+                        List<String> times = List.of("6:0","7:0");
                         if(times.contains(LocalTime.now(Clock.systemDefaultZone()).getHour() + ":" + LocalTime.now(Clock.systemDefaultZone()).getMinute())){
                             for(Message msg : messagesPings){
                                 try{
@@ -201,7 +204,7 @@ public class Main extends ListenerAdapter {
             embeds.add(eb.build());
         }
         try{
-            chatChannel.editMessageById(id,"# Aktueller Stundenplan\nAktualisiert: " + "<t:" + (System.currentTimeMillis()/1000) + ":R>\nDatum: " + getDate()).setEmbeds(embeds).queue();
+            chatChannel.editMessageById(id,"# Aktueller Stundenplan\nAktualisiert: " + "<t:" + (System.currentTimeMillis()/1000) + ":R>\nDatum: " + refreshTime).setEmbeds(embeds).queue();
         }catch (Exception ignored){}
     }
 
@@ -214,7 +217,18 @@ public class Main extends ListenerAdapter {
                 id = classObject.getId();
             }
             session.useCache(false);
-            Timetable timetable = session.getTimetableFromClassId(getDate(), getDate(), id);
+            Timetable timetable;
+            boolean refreshLetzeStunde;
+            //if(localTimeToLong(letzteStunde)<=localTimeToLong(LocalTime.now())){
+            if(localTimeToLong(LocalTime.of(17,19))<=localTimeToLong(LocalTime.now())){
+                timetable = session.getTimetableFromClassId(getDate().plusDays(1), getDate().plusDays(1), id);
+                refreshLetzeStunde = false;
+                refreshTime = getDate().plusDays(1);
+            } else {
+                timetable = session.getTimetableFromClassId(getDate(), getDate(), id);
+                refreshLetzeStunde = true;
+                refreshTime = getDate();
+            }
             stundeHashMap.clear();
             timetable.sortByStartTime();
             if(timetable.getStartTimes().size() != 0){
@@ -263,6 +277,10 @@ public class Main extends ListenerAdapter {
                     }
                     if(s.getInfo().equals("REGULAR")){
                         s.setColor(Color.GREEN);
+                    }
+
+                    if(refreshLetzeStunde){
+                        letzteStunde = timetable.getEndTimes().get(i);
                     }
 
                     try{
