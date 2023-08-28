@@ -54,6 +54,9 @@ public class Main extends ListenerAdapter {
     public static LocalDate getDate(){
         return LocalDate.now(ZoneOffset.systemDefault());
     }
+    public static LocalTime getTime(){
+        return LocalTime.now(ZoneOffset.systemDefault());
+    }
 
     public static void main(String[] args) throws InterruptedException {
         letzteStunde = LocalTime.of(2,0);
@@ -122,7 +125,9 @@ public class Main extends ListenerAdapter {
                                 messagesPings.add(chatChannel.sendMessage("<@&" + pingRoleID + "> Es Entfallen Stunden!").complete());
                             }
                         }
-                    } catch (Exception ignored){}
+                    } catch (Exception e){
+                        e.printStackTrace();
+                    }
                 try {
                     Thread.sleep(60000);
                 } catch (InterruptedException e) {
@@ -185,7 +190,7 @@ public class Main extends ListenerAdapter {
         List<MessageEmbed> embeds = new ArrayList<>();
         EmbedBuilder eb = new EmbedBuilder();
         if(stundeHashMap.size() != 0){
-            for(int i = 0; i <20;i++){
+            for(int i = 0; i <10;i++){
                 eb.clearFields();
                 if(stundeHashMap.containsKey(i+1)){
                     Stunde s = stundeHashMap.get(i+1);
@@ -196,12 +201,12 @@ public class Main extends ListenerAdapter {
                         eb.addField(s.getStunde() + ". Stunde " + s.getName() + " (" + s.getInfo() + ")", s.getTimes() + " in Raum: " + s.getRoom(), true);
                     }
                     embeds.add(eb.build());
-                    if(i == 2 || i == 4 || i == 6 || i == 8){
+                    /*if(i == 4){
                         eb.clearFields();
                         eb.setColor(Color.DARK_GRAY);
-                        eb.addField("Pause","",true);
+                        eb.addField("Pause","Pause",true);
                         embeds.add(eb.build());
-                    }
+                    }*/
                 }
             }
         } else {
@@ -226,7 +231,7 @@ public class Main extends ListenerAdapter {
             Timetable timetable;
             boolean refreshLetzeStunde;
             //if(localTimeToLong(letzteStunde)<=localTimeToLong(LocalTime.now())){
-            if(localTimeToLong(LocalTime.of(17,19))<=localTimeToLong(LocalTime.now())){
+            if(localTimeToLong(LocalTime.of(17,19))<=localTimeToLong(getTime())){
                 timetable = session.getTimetableFromClassId(getDate().plusDays(1), getDate().plusDays(1), id);
                 refreshLetzeStunde = false;
                 refreshTime = getDate().plusDays(1);
@@ -302,11 +307,33 @@ public class Main extends ListenerAdapter {
                     }
                     long start = localTimeToLong(timetable.getStartTimes().get(i));
                     long end = localTimeToLong(timetable.getEndTimes().get(i));
-                    long now = localTimeToLong(LocalTime.now());
-                    if(now <= start && now >= (start-300)){
-                        s.setColor(Color.CYAN);
-                    }else if(now <= end && now > start){
-                        s.setColor(Color.BLUE);
+                    long now = localTimeToLong(getTime());
+                    now = localTimeToLong(LocalTime.of(11,16));
+                    if(s.getInfo().equals("IRREGULAR")){
+                        s.setColor(Color.ORANGE);
+                        stundenEntfallen = true;
+                        if(now <= start && now >= (start-300)){
+                            s.setColor(Color.ORANGE);
+                        }else if(now <= end && now > start){
+                            s.setColor(Color.YELLOW);
+                        }
+                    }
+                    if(s.getInfo().equals("CANCELLED")){
+                        s.setColor(Color.RED);
+                        stundenEntfallen = true;
+                        if(now <= start && now >= (start-300)){
+                            s.setColor(Color.MAGENTA);
+                        }else if(now <= end && now > start){
+                            s.setColor(Color.MAGENTA);
+                        }
+                    }
+                    if(s.getInfo().equals("REGULAR")){
+                        s.setColor(Color.GREEN);
+                        if(now <= start && now >= (start-300)){
+                            s.setColor(Color.CYAN);
+                        }else if(now <= end && now > start){
+                            s.setColor(Color.BLUE);
+                        }
                     }
                     stundeHashMap.put(i+1,s);
                 }
