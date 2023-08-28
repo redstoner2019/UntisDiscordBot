@@ -1,5 +1,6 @@
 package me.redstoner2019;
 
+import jdk.jfr.ContentType;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -12,16 +13,25 @@ import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.utils.AttachedFile;
+import net.dv8tion.jda.api.utils.FileUpload;
+import net.dv8tion.jda.internal.requests.Requester;
+import okhttp3.MultipartBody;
 import org.bytedream.untis4j.LoginException;
 import org.bytedream.untis4j.Session;
 import org.bytedream.untis4j.responseObjects.Classes;
 import org.bytedream.untis4j.responseObjects.Timetable;
 import org.jetbrains.annotations.NotNull;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URL;
 import java.time.*;
-import java.awt.Color;
 import java.util.*;
+import java.util.List;
 
 public class Main extends ListenerAdapter {
 
@@ -66,7 +76,7 @@ public class Main extends ListenerAdapter {
         jda.awaitReady();
         jda.addEventListener(new Main());
 
-        chatChannel = jda.getTextChannelById("1143512064690765904");
+        chatChannel = jda.getTextChannelById("1145726265278611567");
 
         if(Objects.equals(pingRoleID, "")){
             for(Role role : chatChannel.getGuild().getRoles()){
@@ -89,11 +99,11 @@ public class Main extends ListenerAdapter {
         }
         Thread t = new Thread(() -> {
             while (true) {
-                try {
                     try{
                         if(chatChannel != null){
                             refreshHours();
                             refreshEmbeds(messageID);
+                            //generateImage(messageID);
                         }
                         List<Integer> times = List.of(6,7);
                         if(times.contains(LocalTime.now(Clock.systemDefaultZone()).getHour())){
@@ -112,8 +122,11 @@ public class Main extends ListenerAdapter {
                             }
                         }
                     } catch (Exception ignored){}
+                try {
                     Thread.sleep(60000);
-                } catch (InterruptedException ignored) {}
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         });
         t.start();
@@ -149,16 +162,38 @@ public class Main extends ListenerAdapter {
         return msg.getId();
     }
 
+    /*public static void generateImage(String id) throws IOException {
+        try{
+            BufferedImage image = new BufferedImage(1000,2000,1);
+
+            Graphics2D g = image.createGraphics();
+            g.setColor(Color.DARK_GRAY);
+            g.fillRect(0,0,200,2000);
+            g.fillRect(0,0,1000,50);
+
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            ImageIO.write(image, "png", bytes);
+
+            chatChannel.editMessageAttachmentsById(id,AttachedFile.fromData(bytes.toByteArray(),"image.png")).setContent("# Aktueller Stundenplan\nAktualisiert: " + "<t:" + (System.currentTimeMillis()/1000) + ":R>\nDatum: " + getDate() + ", " + LocalTime.now(ZoneOffset.systemDefault())).queue();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }*/
+
     public static void refreshEmbeds(String id){
         List<MessageEmbed> embeds = new ArrayList<>();
         EmbedBuilder eb = new EmbedBuilder();
         if(stundeHashMap.size() != 0){
-            for(int i = 0; i <12;i++){
+            for(int i = 0; i <20;i++){
                 eb.clearFields();
                 if(stundeHashMap.containsKey(i+1)){
                     Stunde s = stundeHashMap.get(i+1);
                     eb.setColor(s.getColor());
-                    eb.addField(s.getStunde() + ". Stunde " + s.getName(), s.getTimes() + "\nInfo: " + s.getInfo() + "\nRaum: " + s.getRoom(), true);
+                    if(s.getInfo().equals("REGULAR")){
+                        eb.addField(s.getStunde() + ". Stunde " + s.getName(), s.getTimes() + "\nRaum: " + s.getRoom(), true);
+                    } else {
+                        eb.addField(s.getStunde() + ". Stunde " + s.getName() + " (" + s.getInfo() + ")", s.getTimes() + "\nRaum: " + s.getRoom(), true);
+                    }
                     embeds.add(eb.build());
                 }
             }
@@ -168,12 +203,13 @@ public class Main extends ListenerAdapter {
             embeds.add(eb.build());
         }
         try{
-            chatChannel.editMessageById(id,"# Aktueller Stundenplan\nAktualisiert: " + "<t:" + (System.currentTimeMillis()/1000) + ":R>\nDatum: " + getDate().getDayOfWeek() + ", " + LocalDate.now(ZoneOffset.systemDefault())).setEmbeds(embeds).queue();
+            chatChannel.editMessageById(id,"# Aktueller Stundenplan\nAktualisiert: " + "<t:" + (System.currentTimeMillis()/1000) + ":R>\nDatum: " + getDate() + ", " + LocalTime.now(ZoneOffset.systemDefault())).setEmbeds(embeds).queue();
         }catch (Exception ignored){}
     }
 
     public static void refreshHours(){
         try {
+            session = Session.login(className,password, "https://mese.webuntis.com", schoolName);
             Classes classes = session.getClasses();
             int id = 0;
             for (Classes.ClassObject classObject : classes.searchByName(className)) {
