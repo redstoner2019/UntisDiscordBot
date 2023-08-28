@@ -105,20 +105,18 @@ public class Main extends ListenerAdapter {
                             refreshEmbeds(messageID);
                             //generateImage(messageID);
                         }
-                        List<Integer> times = List.of(6,7);
-                        if(times.contains(LocalTime.now(Clock.systemDefaultZone()).getHour())){
-                            if(LocalTime.now(Clock.systemDefaultZone()).getMinute() == 0){
-                                for(Message msg : messagesPings){
-                                    try{
-                                        if(msg.getAuthor().getEffectiveName().equals("UntisBot")){
-                                            msg.delete().queue();
-                                        }
-                                    }catch (Exception ignored){}
-                                }
-                                messagesPings.clear();
-                                if(stundenEntfallen){
-                                    messagesPings.add(chatChannel.sendMessage("<@&" + pingRoleID + "> Es Entfallen Stunden!").complete());
-                                }
+                        List<String> times = List.of("6:00","7:00");
+                        if(times.contains(LocalTime.now(Clock.systemDefaultZone()).getHour() + ":" + LocalTime.now(Clock.systemDefaultZone()).getMinute())){
+                            for(Message msg : messagesPings){
+                                try{
+                                    if(msg.getAuthor().getEffectiveName().equals("UntisBot")){
+                                        msg.delete().queue();
+                                    }
+                                }catch (Exception ignored){}
+                            }
+                            messagesPings.clear();
+                            if(stundenEntfallen){
+                                messagesPings.add(chatChannel.sendMessage("<@&" + pingRoleID + "> Es Entfallen Stunden!").complete());
                             }
                         }
                     } catch (Exception ignored){}
