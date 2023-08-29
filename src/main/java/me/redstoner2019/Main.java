@@ -115,7 +115,7 @@ public class Main extends ListenerAdapter {
                             //generateImage(messageID);
                         }
                         List<String> times = List.of("6:0","7:0");
-                        if(times.contains(LocalTime.now(Clock.systemDefaultZone()).getHour() + ":" + LocalTime.now(Clock.systemDefaultZone()).getMinute())){
+                        if(times.contains(getTime().getHour() + ":" + getTime().getMinute())){
                             for(Message msg : messagesPings){
                                 try{
                                     if(msg.getAuthor().getEffectiveName().equals("UntisBot")){
