@@ -85,7 +85,7 @@ public class Main extends ListenerAdapter {
         jda.awaitReady();
         jda.addEventListener(new Main());
 
-        chatChannel = jda.getTextChannelById("1145726265278611567");
+        chatChannel = jda.getTextChannelById("1143512064690765904");
 
         if(Objects.equals(pingRoleID, "")){
             for(Role role : chatChannel.getGuild().getRoles()){
@@ -126,11 +126,10 @@ public class Main extends ListenerAdapter {
                             messagesPings.clear();
                             if(stundenEntfallen){
                                 messagesPings.add(chatChannel.sendMessage("<@&" + pingRoleID + "> Es Entfallen Stunden!").complete());
+                                stundenEntfallen = false;
                             }
                         }
-                    } catch (Exception e){
-                        e.printStackTrace();
-                    }
+                    } catch (Exception ignored){}
                 try {
                     Thread.sleep(60000);
                 } catch (InterruptedException e) {
@@ -356,7 +355,11 @@ public class Main extends ListenerAdapter {
 
     @Override
     public void onMessageReactionAdd(@NotNull MessageReactionAddEvent event) {
+        System.out.println(event.getUser().getName() + " reacted " + event.getReaction());
         if(!reactionReady || Objects.requireNonNull(event.getUser()).getName().equals("UntisBot")){
+            return;
+        }
+        if(!event.getChannel().getId().equals(chatChannel.getId())){
             return;
         }
         if(event.getEmoji().equals(Emoji.fromUnicode("\uD83D\uDC4D"))){
