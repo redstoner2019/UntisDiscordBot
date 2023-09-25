@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -61,7 +62,7 @@ public class Main extends ListenerAdapter {
         return LocalTime.now(ZoneOffset.ofHours(hourOffset));
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) {
         letzteStunde = LocalTime.of(2,0);
         try {
             session = Session.login(className,password, "https://mese.webuntis.com", schoolName);
@@ -69,7 +70,7 @@ public class Main extends ListenerAdapter {
             e.printStackTrace();
         }
 
-        String token = "token";
+        String token = "";
 
         token = args[0];
 
@@ -82,10 +83,14 @@ public class Main extends ListenerAdapter {
                 .enableIntents(GatewayIntent.MESSAGE_CONTENT)
                 .build();
 
-        jda.awaitReady();
+        try {
+            jda.awaitReady();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         jda.addEventListener(new Main());
 
-        chatChannel = jda.getTextChannelById("1143512064690765904");
+        chatChannel = jda.getTextChannelById("1145726265278611567");
 
         if(Objects.equals(pingRoleID, "")){
             for(Role role : chatChannel.getGuild().getRoles()){
@@ -141,9 +146,14 @@ public class Main extends ListenerAdapter {
 
         reactionReady = true;
 
-        chatChannel.getGuild().updateCommands().addCommands(Commands.slash("setup", "Setup UntisBot").addOptions(
-                new OptionData(OptionType.STRING, "setoffset", "The type of animal to find")
-        )).queue();
+        for(Guild g : jda.getGuilds()){
+            g.updateCommands().addCommands(Commands.slash("setup", "Setup UntisBot").addOptions(
+                        new OptionData(OptionType.STRING, "setoffset", "Time Offset")),
+                    Commands.slash("convert", "Convert number systems").addOptions(
+                            new OptionData(OptionType.INTEGER, "from", "Original System"),new OptionData(OptionType.INTEGER,"to","to System"),new OptionData(OptionType.STRING,"data","The number")
+                    )).queue();
+        }
+        System.out.println("Commands loaded");
     }
 
     @Override
@@ -166,6 +176,26 @@ public class Main extends ListenerAdapter {
                 messageID = sendMessage("Timetable Message");
                 refreshEmbeds(messageID);
                 event.reply("Setup done").setEphemeral(true).queue();
+            }
+        } else if(event.getName().equals("convert")){
+            for(OptionMapping o : event.getOptions()){
+                System.out.println(o.getAsString());
+            }
+            if(event.getOptions().size() != 3){
+                event.reply("Invalid command usage!").setEphemeral(true).queue();
+            } else {
+                int from = event.getOptions().get(0).getAsInt();
+                int to = event.getOptions().get(1).getAsInt();
+                String value = event.getOptions().get(2).getAsString();
+
+                if(from >= 36 || from <= 1){
+                    event.reply("Das System muss mindestens 2 und maximal 36 sein! Angegeben: " + from).setEphemeral(true).queue();
+                } else if(to >= 36 || to <= 1){
+                    event.reply("Das System muss mindestens 2 und maximal 36 sein! Angegeben: " + to).setEphemeral(true).queue();
+                } else {
+                    String returnValue = toSystem(to,fromSystem(from,value));
+                    event.reply("Result: " + returnValue + " (Decimal: " + fromSystem(from,value) + ")").setEphemeral(true).queue();
+                }
             }
         }
     }
@@ -397,5 +427,47 @@ public class Main extends ListenerAdapter {
         if(event.getMessage().getContentDisplay().equals("React for Ping role")){
             event.getMessage().addReaction(Emoji.fromUnicode("\uD83D\uDC4D")).complete();
         }
+    }
+    public static long fromSystem(int size, String value){
+        char[] chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
+        int i = value.length()-1;
+        long output = 0;
+        for(char c : value.toCharArray()){
+            int val = 0;
+            boolean found = false;
+            for(char c0 : chars){
+                if(c0 == c) {
+                    found = true;
+                    break;
+                }
+                val++;
+            }
+            if(!found) return -1;
+            output+= Math.pow(size,i)*val;
+            i--;
+        }
+        return output;
+    }
+
+    public static String toSystem(int system, long value){
+        char[] chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
+        int length = 0;
+        while(Math.pow(system,length)<=value) length++;
+        String output = "";
+        while(length>=0){
+            char c = '-';
+            int j = 0;
+            for(int i = 0; i<system;i++){
+                int e = (int) Math.pow(system,length)*i;
+                if(e<=value){
+                    c=chars[i];
+                    j = e;
+                }
+            }
+            output = output + c;
+            value = value - j;
+            length--;
+        }
+        return output.substring(1);
     }
 }
