@@ -1,11 +1,13 @@
 package me.redstoner2019;
 
-import jdk.jfr.ContentType;
+///setup schoolname:Nixdorf_BK_Essen password:hnbk_KB_2023 classname:FA-23B
+
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -16,36 +18,25 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
-import net.dv8tion.jda.api.utils.AttachedFile;
-import net.dv8tion.jda.api.utils.FileUpload;
-import net.dv8tion.jda.internal.requests.Requester;
-import okhttp3.MultipartBody;
 import org.bytedream.untis4j.LoginException;
 import org.bytedream.untis4j.Session;
 import org.bytedream.untis4j.responseObjects.Classes;
 import org.bytedream.untis4j.responseObjects.Timetable;
 import org.jetbrains.annotations.NotNull;
 
-import javax.imageio.ImageIO;
 import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.net.URL;
 import java.time.*;
 import java.util.*;
 import java.util.List;
 
 public class Main extends ListenerAdapter {
 
-    public static TextChannel chatChannel;
     public static HashMap<Integer, Stunde> stundeHashMap = new HashMap<>();
-    public static String className = "FA-23B";
+    /*public static String className = "FA-23B";
     public static String password = "hnbk_KB_2023";
-    public static String schoolName = "Nixdorf_BK_Essen";
+    public static String schoolName = "Nixdorf_BK_Essen";*/
     public static HashMap<String,Integer> stundenOffsets = new HashMap<>();
     public static Session session;
-    public static String messageID = "";
     public static boolean reactionReady = false;
     public static JDA jda;
     public static String pingRoleID = "";
@@ -54,21 +45,19 @@ public class Main extends ListenerAdapter {
     public static LocalTime letzteStunde;
     public static LocalDate refreshTime;
     public static int hourOffset = 2;
+    public static List<ServerData> serverData = new ArrayList<>();
 
     public static LocalDate getDate(){
         return LocalDate.now(ZoneOffset.ofHours(hourOffset));
+        //return LocalDate.of(2023,10,16);
     }
     public static LocalTime getTime(){
         return LocalTime.now(ZoneOffset.ofHours(hourOffset));
+        //return LocalTime.of(8,0);
     }
 
     public static void main(String[] args) {
         letzteStunde = LocalTime.of(2,0);
-        try {
-            session = Session.login(className,password, "https://mese.webuntis.com", schoolName);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
         String token = "";
 
@@ -90,34 +79,52 @@ public class Main extends ListenerAdapter {
         }
         jda.addEventListener(new Main());
 
-        chatChannel = jda.getTextChannelById("1145726265278611567");
+        //chatChannel = jda.getTextChannelById("1145726265278611567");
 
-        if(Objects.equals(pingRoleID, "")){
-            for(Role role : chatChannel.getGuild().getRoles()){
-                if(role.getName().equals("Entfall Ping")){
-                    pingRoleID = role.getId();
-                    break;
+        for(Guild g : jda.getGuilds()){
+            if(Objects.equals(pingRoleID, "")){
+                for(Role role : g.getRoles()){
+                    if(role.getName().equals("Entfall Ping")){
+                        pingRoleID = role.getId();
+                        break;
+                    }
                 }
             }
         }
-        if(Objects.equals(pingRoleID, "")){
-            chatChannel.getGuild().createRole().setColor(Color.RED).setName("Entfall Ping").setPermissions(0L).complete();
-        }
 
-        assert chatChannel != null;
-        List<Message> messages = chatChannel.getHistory().retrievePast(50).complete();
-        for(Message msg : messages){
-            if(msg.getAuthor().getEffectiveName().equals("UntisBot")){
-                msg.delete().queue();
+        for(Guild g : jda.getGuilds()){
+            if(Objects.equals(pingRoleID, "")){
+                g.createRole().setColor(Color.RED).setName("Entfall Ping").setPermissions(0L).complete();
             }
         }
+
+
+        for(Guild g : jda.getGuilds()){
+            for(GuildChannel channel : g.getChannels()){
+                if(channel instanceof TextChannel){
+                    TextChannel channel1 = (TextChannel) channel;
+                    try{
+                        List<Message> messages = channel1.getHistory().retrievePast(50).complete();
+                        for(Message msg : messages){
+                            if(msg.getAuthor().getEffectiveName().equals("UntisBot")){
+                                msg.delete().queue();
+                            }
+                        }
+                    }catch (Exception e){}
+                }
+            }
+        }
+
         Thread t = new Thread(() -> {
             while (true) {
                     try{
-                        if(chatChannel != null){
-                            refreshHours();
-                            refreshEmbeds(messageID);
-                            //generateImage(messageID);
+                        for(ServerData data : serverData){
+                            try{
+                                refreshHours(data);
+                                refreshEmbeds(data.messageID);
+                            }catch (Exception ignored){
+
+                            }
                         }
                         List<String> times = List.of("6:0","7:0");
                         if(times.contains(getTime().getHour() + ":" + getTime().getMinute())){
@@ -130,7 +137,10 @@ public class Main extends ListenerAdapter {
                             }
                             messagesPings.clear();
                             if(stundenEntfallen){
-                                messagesPings.add(chatChannel.sendMessage("<@&" + pingRoleID + "> Es Entfallen Stunden!").complete());
+                                /**
+                                 * TODO read PINGS
+                                 */
+                                //messagesPings.add(chatChannel.sendMessage("<@&" + pingRoleID + "> Es Entfallen Stunden!").complete());
                                 stundenEntfallen = false;
                             }
                         }
@@ -148,7 +158,10 @@ public class Main extends ListenerAdapter {
 
         for(Guild g : jda.getGuilds()){
             g.updateCommands().addCommands(Commands.slash("setup", "Setup UntisBot").addOptions(
-                        new OptionData(OptionType.STRING, "setoffset", "Time Offset")),
+                            new OptionData(OptionType.STRING, "setoffset", "Time Offset"),
+                            new OptionData(OptionType.STRING, "schoolname", "Schulname"),
+                            new OptionData(OptionType.STRING, "password", "Passwort"),
+                            new OptionData(OptionType.STRING, "classname", "Klassenname")),
                     Commands.slash("convert", "Convert number systems").addOptions(
                             new OptionData(OptionType.INTEGER, "from", "Original System"),new OptionData(OptionType.INTEGER,"to","to System"),new OptionData(OptionType.STRING,"data","The number")
                     )).queue();
@@ -159,23 +172,38 @@ public class Main extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         if(event.getName().equals("setup")){
+            ServerData data = new ServerData();
             System.out.println(event.getOptions().size());
             if(event.getOptions().size() == 1){
                 hourOffset = event.getOptions().get(0).getAsInt();
                 System.out.println(hourOffset);
                 event.reply("Changed time offset to " + hourOffset).setEphemeral(true).queue();
-            } else {
-                chatChannel = event.getChannel().asTextChannel();
-                List<Message> messages = chatChannel.getHistory().retrievePast(50).complete();
-                for(Message msg : messages){
-                    if(msg.getAuthor().getEffectiveName().equals("UntisBot")){
-                        msg.delete().queue();
+            }else if(event.getOptions().size() == 3) {
+                try{
+                    TextChannel chatChannel = event.getChannel().asTextChannel();
+                    List<Message> messages = chatChannel.getHistory().retrievePast(50).complete();
+                    for(Message msg : messages){
+                        if(msg.getAuthor().getEffectiveName().equals("UntisBot")){
+                            msg.delete().queue();
+                        }
                     }
+                    String reactionID = sendMessage("React for Ping role",chatChannel.getId());
+                    String timetableID = sendMessage("Timetable Message",chatChannel.getId());
+                    data.className = event.getOption("classname").getAsString();
+                    data.password = event.getOption("password").getAsString();
+                    data.schoolName = event.getOption("schoolname").getAsString();
+                    data.reactionMessageID = reactionID;
+                    data.messageID = timetableID;
+                    data.messageChannel = event.getChannel().getId();
+                    refreshHours(data);
+                    refreshEmbeds(timetableID);
+                    serverData.add(data);
+                }catch (Exception e){
+                    event.reply("Setup error!").setEphemeral(true).queue();
                 }
-                sendMessage("React for Ping role");
-                messageID = sendMessage("Timetable Message");
-                refreshEmbeds(messageID);
                 event.reply("Setup done").setEphemeral(true).queue();
+            } else {
+                event.reply("Setup error!").setEphemeral(true).queue();
             }
         } else if(event.getName().equals("convert")){
             for(OptionMapping o : event.getOptions()){
@@ -200,8 +228,9 @@ public class Main extends ListenerAdapter {
         }
     }
 
-    public static String sendMessage(String content){
+    public static String sendMessage(String content,String channelID){
         content = content.replaceAll("_","\\_");
+        TextChannel chatChannel = jda.getTextChannelById(channelID);
         if(chatChannel == null){
             return null;
         }
@@ -228,155 +257,164 @@ public class Main extends ListenerAdapter {
     }*/
 
     public static void refreshEmbeds(String id){
-        List<MessageEmbed> embeds = new ArrayList<>();
-        EmbedBuilder eb = new EmbedBuilder();
-        if(stundeHashMap.size() != 0){
-            for(int i = 0; i <10;i++){
-                eb.clearFields();
-                if(stundeHashMap.containsKey(i+1)){
-                    Stunde s = stundeHashMap.get(i+1);
-                    eb.setColor(s.getColor());
-                    if(s.getInfo().equals("REGULAR")){
-                        eb.addField(s.getStunde() + ". Stunde " + s.getName(), s.getTimes() + " in Raum: " + s.getRoom(), true);
-                    } else {
-                        eb.addField(s.getStunde() + ". Stunde " + s.getName() + " (" + s.getInfo() + ")", s.getTimes() + " in Raum: " + s.getRoom(), true);
+        for(ServerData data : serverData){
+            List<MessageEmbed> embeds = new ArrayList<>();
+            EmbedBuilder eb = new EmbedBuilder();
+            if(stundeHashMap.size() != 0){
+                for(int i = 0; i <10;i++){
+                    eb.clearFields();
+                    if(stundeHashMap.containsKey(i+1)){
+                        Stunde s = stundeHashMap.get(i+1);
+                        eb.setColor(s.getColor());
+                        if(s.getInfo().equals("REGULAR")){
+                            eb.addField(s.getStunde() + ". Stunde " + s.getName(), s.getTimes() + " in Raum: " + s.getRoom(), true);
+                        } else {
+                            eb.addField(s.getStunde() + ". Stunde " + s.getName() + " (" + s.getInfo() + ")", s.getTimes() + " in Raum: " + s.getRoom(), true);
+                        }
+                        embeds.add(eb.build());
                     }
-                    embeds.add(eb.build());
                 }
+            } else {
+                eb.setColor(Color.RED);
+                eb.addField("Kein Stundenplan", "Aktuell kein Stundenplan verfügbar!", true);
+                embeds.add(eb.build());
             }
-        } else {
-            eb.setColor(Color.RED);
-            eb.addField("Kein Stundenplan", "Aktuell kein Stundenplan verfügbar!", true);
-            embeds.add(eb.build());
+            try{
+                System.out.println(jda);
+                jda.getTextChannelById(data.messageChannel).editMessageById(data.messageID,"# Aktueller Stundenplan für " + data.className + " \nAktualisiert: " + "<t:" + (System.currentTimeMillis()/1000) + ":R>\nDatum: " + refreshTime.getDayOfWeek() + " " + refreshTime.getDayOfMonth() + "." + refreshTime.getMonth().getValue() + "." + refreshTime.getYear()).setEmbeds(embeds).queue();
+            }catch (Exception e){
+               System.err.println("Error updating message");
+               e.printStackTrace();
+            }
+            System.out.println("Updated " + data.toString());
         }
-        try{
-            chatChannel.editMessageById(id,"# Aktueller Stundenplan\nAktualisiert: " + "<t:" + (System.currentTimeMillis()/1000) + ":R>\nDatum: " + refreshTime.getDayOfWeek() + " " + refreshTime.getDayOfMonth() + "." + refreshTime.getMonth().getValue() + "." + refreshTime.getYear()).setEmbeds(embeds).queue();
-        }catch (Exception ignored){}
+
     }
 
-    public static void refreshHours(){
-        try {
-            session = Session.login(className,password, "https://mese.webuntis.com", schoolName);
-            Classes classes = session.getClasses();
-            int id = 0;
-            for (Classes.ClassObject classObject : classes.searchByName(className)) {
-                id = classObject.getId();
-            }
-            session.useCache(false);
-            Timetable timetable;
-            boolean refreshLetzeStunde;
-            if(localTimeToLong(letzteStunde)<=localTimeToLong(getTime())){
-                timetable = session.getTimetableFromClassId(getDate().plusDays(1), getDate().plusDays(1), id);
-                refreshLetzeStunde = false;
-                refreshTime = getDate().plusDays(1);
-            } else {
-                timetable = session.getTimetableFromClassId(getDate(), getDate(), id);
-                refreshLetzeStunde = true;
-                refreshTime = getDate();
-            }
-            stundeHashMap.clear();
-            timetable.sortByStartTime();
-            if(timetable.getStartTimes().size() != 0){
-                int hourOffset = stundenOffsets.getOrDefault(timetable.getStartTimes().get(0).toString(),0);
-                int stunde = 0;
-                String letzteUhrzeit = "";
-                for (int i = 0; i < timetable.getSubjects().size(); i++) {
-                    Stunde s = new Stunde("",Color.RED,"","Findet Nicht Statt","","");
+    public static void refreshHours(ServerData data){
+            try {
+                session = Session.login(data.className,data.password, "https://mese.webuntis.com", data.schoolName);
+                Classes classes = session.getClasses();
+                int id = 0;
+                for (Classes.ClassObject classObject : classes.searchByName(data.className)) {
+                    id = classObject.getId();
+                }
+                session.useCache(false);
+                Timetable timetable;
+                boolean refreshLetzeStunde;
+                if(localTimeToLong(letzteStunde)<=localTimeToLong(getTime())){
+                    timetable = session.getTimetableFromClassId(getDate().plusDays(1), getDate().plusDays(1), id);
+                    refreshLetzeStunde = false;
+                    refreshTime = getDate().plusDays(1);
+                } else {
+                    timetable = session.getTimetableFromClassId(getDate(), getDate(), id);
+                    refreshLetzeStunde = true;
+                    refreshTime = getDate();
+                }
+                stundeHashMap.clear();
+                timetable.sortByStartTime();
+                if(timetable.getStartTimes().size() != 0){
+                    int hourOffset = stundenOffsets.getOrDefault(timetable.getStartTimes().get(0).toString(),0);
+                    int stunde = 0;
+                    String letzteUhrzeit = "";
+                    for (int i = 0; i < timetable.getSubjects().size(); i++) {
+                        Stunde s = new Stunde("",Color.RED,"","Findet Nicht Statt","","");
 
-                    try{
-                        s.setName(timetable.get(i).getSubjects().getLongNames().get(0));
-                    }catch (Exception ignored){}
+                        try{
+                            s.setName(timetable.get(i).getSubjects().getLongNames().get(0));
+                        }catch (Exception ignored){}
 
-                    try{
-                        s.setTimes(timetable.getStartTimes().get(i) + " - " + timetable.getEndTimes().get(i));
-                    }catch (Exception ignored){}
+                        try{
+                            s.setTimes(timetable.getStartTimes().get(i) + " - " + timetable.getEndTimes().get(i));
+                        }catch (Exception ignored){}
 
-                    try{
-                        s.setTeacher(String.valueOf(timetable.getTeachers().toString()));
-                    }catch (Exception ignored){}
+                        try{
+                            s.setTeacher(String.valueOf(timetable.getTeachers().toString()));
+                        }catch (Exception ignored){}
 
-                    try{
-                        s.setRoom(timetable.getRooms().get(i).getName() + " (" + timetable.getRooms().get(i).getBuilding() + ")");
-                    }catch (Exception ignored){}
+                        try{
+                            s.setRoom(timetable.getRooms().get(i).getName() + " (" + timetable.getRooms().get(i).getBuilding() + ")");
+                        }catch (Exception ignored){}
 
-                    if(letzteUhrzeit.equals(timetable.getStartTimes().get(i) + "")) {
-                        letzteUhrzeit = timetable.getStartTimes().get(i) + "";
-                    } else {
-                        letzteUhrzeit = timetable.getStartTimes().get(i) + "";
-                        stunde++;
-                    }
+                        if(letzteUhrzeit.equals(timetable.getStartTimes().get(i) + "")) {
+                            letzteUhrzeit = timetable.getStartTimes().get(i) + "";
+                        } else {
+                            letzteUhrzeit = timetable.getStartTimes().get(i) + "";
+                            stunde++;
+                        }
 
-                    s.setStunde(stunde + hourOffset);
+                        s.setStunde(stunde + hourOffset);
 
-                    s.setInfo(timetable.getActivityTypes().get(i));
+                        s.setInfo(timetable.getActivityTypes().get(i));
 
-                    s.setInfo(String.valueOf(timetable.getLessonCodes().get(i)));
+                        s.setInfo(String.valueOf(timetable.getLessonCodes().get(i)));
 
-                    if(s.getInfo().equals("IRREGULAR")){
-                        s.setColor(Color.ORANGE);
-                        stundenEntfallen = true;
-                    }
-                    if(s.getInfo().equals("CANCELLED")){
-                        s.setColor(Color.RED);
-                        stundenEntfallen = true;
-                    }
-                    if(s.getInfo().equals("REGULAR")){
-                        s.setColor(Color.GREEN);
-                    }
+                        if(s.getInfo().equals("IRREGULAR")){
+                            s.setColor(Color.ORANGE);
+                            stundenEntfallen = true;
+                        }
+                        if(s.getInfo().equals("CANCELLED")){
+                            s.setColor(Color.RED);
+                            stundenEntfallen = true;
+                        }
+                        if(s.getInfo().equals("REGULAR")){
+                            s.setColor(Color.GREEN);
+                        }
 
-                    if(refreshLetzeStunde){
-                        letzteStunde = timetable.getEndTimes().get(i);
-                    }
+                        if(refreshLetzeStunde){
+                            letzteStunde = timetable.getEndTimes().get(i);
+                        }
 
-                    try{
-                        boolean cancelled = false;
-                        for(int i0 = 0; i0<timetable.get(i).getSubjects().getActiveTypes().size();i0++){
-                            if(!cancelled){
-                                cancelled = timetable.get(i).getSubjects().get(i0).isActive();
+                        try{
+                            boolean cancelled = false;
+                            for(int i0 = 0; i0<timetable.get(i).getSubjects().getActiveTypes().size();i0++){
+                                if(!cancelled){
+                                    cancelled = timetable.get(i).getSubjects().get(i0).isActive();
+                                }
+                            }
+
+                        }catch (Exception e){
+                            e.printStackTrace();
+                        }
+                        long start = localTimeToLong(timetable.getStartTimes().get(i));
+                        long end = localTimeToLong(timetable.getEndTimes().get(i));
+                        long now = localTimeToLong(getTime());
+                        if(s.getInfo().equals("IRREGULAR")){
+                            s.setColor(Color.ORANGE);
+                            stundenEntfallen = true;
+                            if(now <= start && now >= (start-300)){
+                                s.setColor(Color.ORANGE);
+                            }else if(now <= end && now > start){
+                                s.setColor(Color.YELLOW);
                             }
                         }
-
-                    }catch (Exception e){
-                        e.printStackTrace();
-                    }
-                    long start = localTimeToLong(timetable.getStartTimes().get(i));
-                    long end = localTimeToLong(timetable.getEndTimes().get(i));
-                    long now = localTimeToLong(getTime());
-                    if(s.getInfo().equals("IRREGULAR")){
-                        s.setColor(Color.ORANGE);
-                        stundenEntfallen = true;
-                        if(now <= start && now >= (start-300)){
-                            s.setColor(Color.ORANGE);
-                        }else if(now <= end && now > start){
-                            s.setColor(Color.YELLOW);
+                        if(s.getInfo().equals("CANCELLED")){
+                            s.setColor(Color.RED);
+                            stundenEntfallen = true;
+                            if(now <= start && now >= (start-300)){
+                                s.setColor(Color.MAGENTA);
+                            }else if(now <= end && now > start){
+                                s.setColor(Color.MAGENTA);
+                            }
                         }
-                    }
-                    if(s.getInfo().equals("CANCELLED")){
-                        s.setColor(Color.RED);
-                        stundenEntfallen = true;
-                        if(now <= start && now >= (start-300)){
-                            s.setColor(Color.MAGENTA);
-                        }else if(now <= end && now > start){
-                            s.setColor(Color.MAGENTA);
+                        if(s.getInfo().equals("REGULAR")){
+                            s.setColor(Color.GREEN);
+                            if(now <= start && now >= (start-300)){
+                                s.setColor(Color.CYAN);
+                            }else if(now <= end && now > start){
+                                s.setColor(Color.BLUE);
+                            }
                         }
+                        stundeHashMap.put(i+1,s);
                     }
-                    if(s.getInfo().equals("REGULAR")){
-                        s.setColor(Color.GREEN);
-                        if(now <= start && now >= (start-300)){
-                            s.setColor(Color.CYAN);
-                        }else if(now <= end && now > start){
-                            s.setColor(Color.BLUE);
-                        }
-                    }
-                    stundeHashMap.put(i+1,s);
                 }
+
+            } catch (LoginException e) {
+                System.out.println("Failed to login: " + e.getMessage());
+            } catch (Exception e) {
+                e.printStackTrace();
             }
 
-        } catch (LoginException e) {
-            System.out.println("Failed to login: " + e.getMessage());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     public static long localTimeToLong(LocalTime time){
@@ -389,9 +427,14 @@ public class Main extends ListenerAdapter {
         if(!reactionReady || Objects.requireNonNull(event.getUser()).getName().equals("UntisBot")){
             return;
         }
-        if(!event.getChannel().getId().equals(chatChannel.getId())){
-            return;
+        for(ServerData data : serverData){
+            if(!event.getChannel().getId().equals(data.messageChannel)){
+                return;
+            }
         }
+
+        TextChannel chatChannel = jda.getTextChannelById(event.getChannel().getId());
+
         if(event.getEmoji().equals(Emoji.fromUnicode("\uD83D\uDC4D"))){
             if(Objects.equals(pingRoleID, "")){
                 for(Role role : chatChannel.getGuild().getRoles()){
